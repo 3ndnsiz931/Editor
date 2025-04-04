@@ -3,6 +3,11 @@
 
 #include "framework.h"
 #include "Editor.h"
+#include "..\\SizEngine_SOURCE\\SizApplication.h"
+// 지금은 비주얼 스튜디오 옵션으로 연결했지만, 원랜 라이브러리 링크를 코드로 참조시킴
+//#pragma comment (lib, "..\\x64\\Debug\\SizEngine_Window.lib")
+
+Application app;
 
 #define MAX_LOADSTRING 100
 
@@ -19,8 +24,8 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
-int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
-                     _In_opt_ HINSTANCE hPrevInstance,
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance, // 프로그램의 인스턴스 핸들
+                     _In_opt_ HINSTANCE hPrevInstance,  // 바로 앞에 실행된 현재 프로그램의 인스턴스 핸들, 없을 경우에는 NULL
                      _In_ LPWSTR    lpCmdLine,
                      _In_ int       nCmdShow)
 {
@@ -28,6 +33,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: 여기에 코드를 입력합니다.
+    app.test();
 
     // 전역 문자열을 초기화합니다.
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -44,15 +50,41 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     MSG msg;
 
-    // 기본 메시지 루프입니다:
-    while (GetMessage(&msg, nullptr, 0, 0))
+    // GetMessage(&msg, nullptr, 0, 0)
+    // 프로세스에서 발생한 메세지를 메세지 큐에서 가져오는 함수
+    // 메세지 큐에 아무것도 없으면? 아무 메세지도 가져오지 않음.
+
+    // PeekMessage : 메세지 큐의 메세지 유무에 상관없이 함수가 리턴됨
+    //               리턴 값이 true면 메세지가 있고 false면 메세지가 없다고 알려줌.
+
+    while (true) 
     {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            if (msg.message == WM_QUIT)
+                break;
+
+            if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+        }
+        else
+        {
+            // 메세지가 없을 경우 여기서 처리
+            // 여기엔 게임 로직이 들어감
         }
     }
+
+    //while (GetMessage(&msg, nullptr, 0, 0))
+    //{
+    //    if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+    //    {
+    //        TranslateMessage(&msg);
+    //        DispatchMessage(&msg);
+    //    }
+    //}
 
     return (int) msg.wParam;
 }
@@ -76,7 +108,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = hInstance;
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_EDITOR));
-    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
+    wcex.hCursor        = LoadCursor(nullptr, IDC_CROSS);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
     wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_EDITOR);
     wcex.lpszClassName  = szWindowClass;
@@ -99,6 +131,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
+   // 여기서 윈도우 생성 >> 창이 정상적으로 생성되었으면 핸들을, 그렇지 않으면 NULL을 반환함
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
       CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
 
@@ -107,6 +140,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
+   // 메모리에 윈도우를 만들었으니 ShowWindow를 호출해서 보여줌
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
@@ -148,7 +182,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
+
+            // 다홍 브러쉬 생성
+            HBRUSH brush = CreateSolidBrush(RGB(244, 100, 100));
+            // 다홍 브러쉬 DC에 선택 후 흰색 브러쉬 반환
+            HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, brush);
+
+            Rectangle(hdc, 100, 100, 500, 200);
+
+            // 다시 흰색 원본 브러쉬로 선택
+            (HBRUSH)SelectObject(hdc, oldBrush);
+            DeleteObject(brush);
+            Ellipse(hdc, 200, 200, 300, 300);
+
             EndPaint(hWnd, &ps);
         }
         break;
